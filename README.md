@@ -24,6 +24,15 @@
 
 ## 方案 A：BeautyCam
 
+### 下载
+
+装好的包在 [Releases](https://github.com/wangsansui963/obs-beauty-cam/releases/latest)：
+
+- `BeautyCam-Setup-1.0.0.exe`（65 MB）—— 双击安装，免配置
+- `BeautyCam-win64.zip`（58 MB）—— 便携版，解压后跑 `install.bat`
+
+> 未做代码签名，SmartScreen 可能提示"未知发布者"，选「仍要运行」即可。
+
 ### 用
 
 1. 先装 **OBS Studio**（虚拟摄像头驱动由 OBS 提供，这是前提）
