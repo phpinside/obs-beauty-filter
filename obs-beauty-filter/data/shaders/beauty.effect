@@ -1,0 +1,137 @@
+// obs-beauty-filter 主着色器
+// 全部为纯数学运算，无外部资源依赖；参数由 C 侧通过 gs_effect_set_* 下发。
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+
+uniform float2 texel;          // 1/宽, 1/高
+uniform float smoothAmount;    // 磨皮 0..1
+uniform float whitenAmount;    // 美白 0..1
+uniform float rosyAmount;      // 红润 0..1
+uniform float sharpenAmount;   // 锐化 0..1
+uniform float slimAmount;      // 瘦脸 -0.6..0.6
+uniform float4 faceRect;       // xy = 中心, zw = 半径（相对画面比例）
+
+sampler_state textureSampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertData {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData VSDefault(VertData v_in)
+{
+	VertData v_out;
+	v_out.pos = mul(float4(v_in.pos.xyz, 1.0), ViewProj);
+	v_out.uv  = v_in.uv;
+	return v_out;
+}
+
+float Luma(float3 c)
+{
+	return dot(c, float3(0.299, 0.587, 0.114));
+}
+
+// 肤色掩膜：R>G>B、有饱和度、避开过暗与过曝区域
+float SkinMask(float3 c)
+{
+	float mx = max(c.r, max(c.g, c.b));
+	float mn = min(c.r, min(c.g, c.b));
+	float sat = (mx - mn) / max(mx, 0.0015);
+
+	float m = step(0.004, c.r - c.b);
+	m *= step(c.b, c.g);
+	m *= step(c.g, c.r);
+	m *= smoothstep(0.055, 0.190, sat);
+	m *= smoothstep(0.055, 0.140, c.r);
+	m *= 1.0 - smoothstep(0.620, 0.800, c.r);
+	return saturate(m);
+}
+
+// 亮度差越小权重越大：把纹理抹平、把五官边缘留下
+float EdgeWeight(float3 a, float3 b, float edgeKeep)
+{
+	float d = abs(Luma(a) - Luma(b));
+	return saturate(1.0 / (1.0 + d * 8.0 * edgeKeep));
+}
+
+float4 TapW(float2 uv, float3 center, float edgeKeep)
+{
+	float3 s = image.Sample(textureSampler, uv).rgb;
+	float w = EdgeWeight(s, center, edgeKeep);
+	return float4(s * w, w);
+}
+
+// 9 点采样：十字 + 对角，两次半径兼顾近处纹理与远处色块
+float3 Smooth9(float2 uv, float3 center, float ra, float rb, float edgeKeep)
+{
+	float2 da = texel * ra;
+	float2 db = texel * rb;
+
+	float4 acc = float4(center, 1.0);
+	acc += TapW(uv + float2( da.x, 0.0), center, edgeKeep);
+	acc += TapW(uv + float2(-da.x, 0.0), center, edgeKeep);
+	acc += TapW(uv + float2(0.0,  da.y), center, edgeKeep);
+	acc += TapW(uv + float2(0.0, -da.y), center, edgeKeep);
+	acc += TapW(uv + float2( db.x,  db.y), center, edgeKeep);
+	acc += TapW(uv + float2(-db.x,  db.y), center, edgeKeep);
+	acc += TapW(uv + float2( db.x, -db.y), center, edgeKeep);
+	acc += TapW(uv + float2(-db.x, -db.y), center, edgeKeep);
+
+	return acc.rgb / max(acc.a, 0.0001);
+}
+
+float4 PSDraw(VertData v_in) : TARGET
+{
+	float2 uv = v_in.uv;
+
+	// ---- 1. 瘦脸：椭圆内沿半径方向把内容往中心挤（slimAmount=0 时恒等变换）
+	float2 fc = faceRect.xy;
+	float2 fr = max(faceRect.zw, float2(0.02, 0.02));
+	float2 dv = (uv - fc) / fr;
+	float r2 = dot(dv, dv);
+	float fall = saturate(1.0 - r2);
+	fall = fall * fall;
+	uv = fc + (uv - fc) * (1.0 + slimAmount * 0.22 * fall);
+	uv = saturate(uv);
+
+	float3 c0 = image.Sample(textureSampler, uv).rgb;
+	float m = SkinMask(c0);
+
+	// ---- 2. 磨皮
+	float amount = saturate(smoothAmount);
+	float3 smoothed = Smooth9(uv, c0, 1.0 + amount * 1.3, 1.9 + amount * 2.2,
+				  1.0 + amount * 2.5);
+	float3 col = lerp(c0, smoothed, amount * (0.30 + 0.70 * m));
+
+	// ---- 3. 美白（高光保护）
+	float hi = 1.0 - smoothstep(0.70, 0.95, Luma(col));
+	col += whitenAmount * m * hi * (0.09 + 0.20 * (1.0 - col));
+
+	// ---- 4. 红润
+	col.r += rosyAmount * m * 0.055;
+	col.g -= rosyAmount * m * 0.012;
+	col.b += rosyAmount * m * 0.018;
+
+	// ---- 5. 锐化：只强化非皮肤区域，避免把毛孔又拉回来
+	float3 blur = (image.Sample(textureSampler, uv + float2(texel.x, 0.0)).rgb +
+		       image.Sample(textureSampler, uv - float2(texel.x, 0.0)).rgb +
+		       image.Sample(textureSampler, uv + float2(0.0, texel.y)).rgb +
+		       image.Sample(textureSampler, uv - float2(0.0, texel.y)).rgb) * 0.25;
+	col += (col - blur) * sharpenAmount * (1.0 - 0.65 * m) * 0.9;
+
+	return float4(saturate(col), 1.0);
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSDraw(v_in);
+	}
+}

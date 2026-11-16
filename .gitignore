@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 构建产物
+build/
+dist/
+release/
+build_launcher/
+out_selftest/
+out_exe/
+*.spec
+
+# 分发包（用 Releases 分发，不入库）
+*.exe
+*.zip
+*.7z
+
+# 运行输出
+out_*/
+rt/
+profile.json
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
