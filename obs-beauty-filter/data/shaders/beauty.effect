@@ -36,20 +36,26 @@ float Luma(float3 c)
 	return dot(c, float3(0.299, 0.587, 0.114));
 }
 
-// 肤色掩膜：R>G>B、有饱和度、避开过暗与过曝区域
+// Soft chroma confidence; reject neutral, dark and strongly saturated colors.
 float SkinMask(float3 c)
 {
-	float mx = max(c.r, max(c.g, c.b));
-	float mn = min(c.r, min(c.g, c.b));
-	float sat = (mx - mn) / max(mx, 0.0015);
+    float y = Luma(c);
+    float cb = (c.b - y) * 0.564 + 0.5;
+    float cr = (c.r - y) * 0.713 + 0.5;
+    float chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+    float m = smoothstep(0.30, 0.35, cb) * (1.0 - smoothstep(0.48, 0.52, cb));
+    m *= smoothstep(0.52, 0.55, cr) * (1.0 - smoothstep(0.68, 0.73, cr));
+    m *= smoothstep(0.025, 0.07, chroma);
+    m *= 1.0 - smoothstep(0.45, 0.65, chroma);
+    m *= smoothstep(0.05, 0.15, y);
+    return saturate(m);
+}
 
-	float m = step(0.004, c.r - c.b);
-	m *= step(c.b, c.g);
-	m *= step(c.g, c.r);
-	m *= smoothstep(0.055, 0.190, sat);
-	m *= smoothstep(0.055, 0.140, c.r);
-	m *= 1.0 - smoothstep(0.620, 0.800, c.r);
-	return saturate(m);
+// Manual face ROI is required: color alone cannot distinguish skin from objects.
+float FaceMask(float2 uv)
+{
+    float2 d = (uv - faceRect.xy) / max(faceRect.zw, float2(0.02, 0.02));
+    return 1.0 - smoothstep(0.64, 1.0, dot(d, d));
 }
 
 // 亮度差越小权重越大：把纹理抹平、把五官边缘留下
@@ -108,9 +114,13 @@ float4 PSDraw(VertData v_in) : TARGET
 				  1.0 + amount * 2.5);
 	float3 col = lerp(c0, smoothed, amount * (0.30 + 0.70 * m));
 
-	// ---- 3. 美白（高光保护）
-	float hi = 1.0 - smoothstep(0.70, 0.95, Luma(col));
-	col += whitenAmount * m * hi * (0.09 + 0.20 * (1.0 - col));
+    // Multiplicative exposure preserves chroma, texture and shadow ordering.
+    // At zero this is exactly identity; no white mixing or additive floor.
+    float wm = m * FaceMask(uv);
+    float peak = max(col.r, max(col.g, col.b));
+    float highlight = 1.0 - smoothstep(0.65, 0.90, peak);
+    float gain = saturate(whitenAmount) * wm * highlight * 0.18;
+    col *= 1.0 + gain;
 
 	// ---- 4. 红润
 	col.r += rosyAmount * m * 0.055;
@@ -122,7 +132,7 @@ float4 PSDraw(VertData v_in) : TARGET
 		       image.Sample(textureSampler, uv - float2(texel.x, 0.0)).rgb +
 		       image.Sample(textureSampler, uv + float2(0.0, texel.y)).rgb +
 		       image.Sample(textureSampler, uv - float2(0.0, texel.y)).rgb) * 0.25;
-	col += (col - blur) * sharpenAmount * (1.0 - 0.65 * m) * 0.9;
+	col += (c0 - blur) * sharpenAmount * (1.0 - 0.65 * m) * 0.9;
 
 	return float4(saturate(col), 1.0);
 }
