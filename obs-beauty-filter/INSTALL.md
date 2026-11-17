@@ -2,7 +2,7 @@
 
 ## 下载和安装
 
-发布后可从 https://github.com/phpinside/obs-beauty-filter/releases 下载 obs-beauty-filter-win64.zip；当前本地编译包位于本目录。
+从 https://github.com/phpinside/obs-beauty-filter/releases 下载 obs-beauty-filter-win64.zip。
 
 1. 完全退出 OBS Studio（包括后台进程）。
 2. 解压 ZIP，将其中 obs-plugins 和 data 两个文件夹复制到 OBS 安装目录并合并。
@@ -32,7 +32,7 @@
 
 本包已在 Windows 使用 VS 2022 / MSVC 19.44、Windows SDK 10.0.26100.0 编译成功。
 使用官方 OBS 30.2.3 头文件及本机 OBS 33.0.1 导出接口链接，已检查 DLL 导出及静态依赖。
-尚未完成 OBS 实际加载和 GPU 效果验证；编译成功不代表已完成实机验收。
+用户已确认插件在 OBS 中验证可用；其他版本和硬件环境需实际验证。
 
 源码构建：运行 build-windows.bat；自定义 OBS 位置运行：
 

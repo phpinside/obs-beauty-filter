@@ -1,26 +1,29 @@
 # OBS 美颜摄像头 / OBS Beauty Cam
 
-给 OBS 直播用的美颜摄像头。两种用法，一套算法：
+给 OBS 直播使用的美颜工具。**优先推荐方案 B：obs-beauty-filter 原生滤镜，已验证可用。**
 
 | 方案 | 形态 | 状态 |
 |---|---|---|
+| **B. obs-beauty-filter 插件** | OBS 原生滤镜，C + GLSL，直接挂在任意来源上 | 已编译，OBS 实机验证通过；优先推荐 |
 | **A. BeautyCam 应用** | 独立程序，处理摄像头画面后推到 **OBS 虚拟摄像头**，OBS 里当普通采集设备用 | 已打包、已实测 |
-| **B. obs-beauty-filter 插件** | OBS 原生滤镜，C + GLSL，直接挂在任意来源上 | Windows x64 已编译，实机加载待验证 |
 
 美颜算法全部自研，没有依赖任何商业人脸 SDK：YCrCb 肤色掩膜 + 引导滤波保边磨皮 + 明度/暖调重映射 + USM 锐化 + 椭圆向心变形（瘦脸）。
 
-## 效果与性能
 
-1280×720，Python 实现，打包后的 exe 实测：
+## 方案 B：obs-beauty-filter（优先推荐）
 
-| 指标 | 结果 |
-|---|---|
-| 单帧耗时 / 帧率 | 25–27 ms / **37–40 fps**（默认 0.75 渲染缩放）；全分辨率 43 ms / 23 fps |
-| 磨皮强度 | 皮肤高频纹理能量 **下降 84.6%** |
-| 美白 | L 通道 **+12.3** |
-| 瘦脸 | 脸宽 495 → 478 px（强度 0.35） |
+**Windows x64 已编译，并已在 OBS 中验证可用。** 原生滤镜直接挂在现有视频来源上，使用 GPU 处理，无需启动额外的 BeautyCam 应用。
 
-效果对比图不在仓库里（避免二进制），运行 `BeautyCam.exe --selftest` 会在 `out_selftest/selftest_compare.png` 生成。
+### 下载与安装
+
+1. [下载 Windows 64 位插件包](https://github.com/phpinside/obs-beauty-filter/releases/download/filter-v1.0.0/obs-beauty-filter-win64.zip)。
+2. 完全退出 OBS，解压 ZIP。
+3. 将包内 `obs-plugins` 和 `data` 两个文件夹复制到 OBS 安装目录并合并。
+4. 重启 OBS，右键视频来源 → 滤镜 → 效果滤镜下的“＋” → 美颜滤镜。
+
+建议从磨皮 0.5、美白 0.3、红润 0.2、锐化 0.3 开始调整。瘦脸需要手动设置人脸中心和半径，不会自动跟随。
+
+完整步骤见 [安装使用说明](obs-beauty-filter/INSTALL.md)，开发者参见 [插件文档](obs-beauty-filter/README.md)。仓库根目录的 GitHub Actions 工作流已构建成功。
 
 ## 方案 A：BeautyCam
 
@@ -58,21 +61,20 @@ python package.py             # 组装 release/ + BeautyCam-win64.zip
 python make_setup.py          # 单文件安装包（Windows 自带 IExpress，无需 NSIS）
 ```
 
-## 方案 B：obs-beauty-filter
+### BeautyCam 应用效果与性能
 
-OBS 原生滤镜，纯 GPU 计算，挂在任意来源上右键即可添加。
+1280×720，Python 实现，打包后的 exe 实测：
 
-```bash
-# 需要 VS 2022 + OBS 源码/source 目录
-set OBS_SOURCE_DIR=C:\path\to\obs-studio
-build-windows.bat
-```
+| 指标 | 结果 |
+|---|---|
+| 单帧耗时 / 帧率 | 25–27 ms / **37–40 fps**（默认 0.75 渲染缩放）；全分辨率 43 ms / 23 fps |
+| 磨皮强度 | 皮肤高频纹理能量 **下降 84.6%** |
+| 美白 | L 通道 **+12.3** |
+| 瘦脸 | 脸宽 495 → 478 px（强度 0.35） |
 
-仓库带 GitHub Actions 工作流（`.github/workflows/build.yml`），推到 GitHub 上可以直接出包。
+效果对比图不在仓库里（避免二进制），运行 `BeautyCam.exe --selftest` 会在 `out_selftest/selftest_compare.png` 生成。
 
-**注意**：这份代码没有在真实 OBS 环境里编译过，接口用的是 OBS 一直稳定的 `obs_source_process_filter_begin/end` 那一套，但请当作"待验证的工程骨架"看待。
-
-## 算法
+## BeautyCam 应用算法
 
 ```
 帧 → (可选) 人脸检测定位 → 几何变形(瘦脸)
@@ -119,7 +121,7 @@ obs-beauty-filter/            方案 B：OBS 原生滤镜
 
 - 虚拟摄像头依赖 OBS 的驱动；不装 OBS 就只是本地预览。
 - 人脸检测用 Haar 级联，正脸、光照正常时稳，侧脸和大角度会丢；需要更稳可以换 ONNX 轻量模型。
-- 方案 B 未编译验证。
+- 原生滤镜已在本机 OBS 验证可用；其他版本和硬件环境需实际验证。
 - Python 实现单线程跑 CPU，高分辨率下建议开渲染缩放；要 4K 60fps 得走方案 B 的 GPU 路径。
 
 ## 许可
