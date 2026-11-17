@@ -1,0 +1,30 @@
+name: build-filter-windows
+on:
+  push:
+    branches: [main]
+    paths: ['obs-beauty-filter/**', '.github/workflows/build.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download OBS runtime for import library
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/obsproject/obs-studio/releases/download/30.2.3/OBS-Studio-30.2.3-Windows.zip -OutFile "$env:RUNNER_TEMP/obs.zip"
+          Expand-Archive "$env:RUNNER_TEMP/obs.zip" "$env:RUNNER_TEMP/obs-runtime"
+      - name: Build filter
+        shell: pwsh
+        run: ./obs-beauty-filter/build-windows.ps1 -ObsRoot "$env:RUNNER_TEMP/obs-runtime"
+      - name: Package
+        shell: pwsh
+        run: |
+          Copy-Item obs-beauty-filter/INSTALL.md obs-beauty-filter/dist/INSTALL.md
+          Compress-Archive obs-beauty-filter/dist/* obs-beauty-filter-win64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obs-beauty-filter-win64
+          path: obs-beauty-filter-win64.zip

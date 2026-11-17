@@ -15,6 +15,10 @@ add_library(obs-beauty-filter MODULE
   src/plugin-main.c
   src/beauty-filter.c)
 
+if(MSVC)
+  target_compile_options(obs-beauty-filter PRIVATE /utf-8)
+endif()
+
 target_include_directories(obs-beauty-filter PRIVATE src)
 target_link_libraries(obs-beauty-filter PRIVATE OBS::libobs)
 
@@ -32,3 +36,4 @@ else()
           LIBRARY DESTINATION "obs-plugins/64bit")
   install(DIRECTORY data/ DESTINATION "data/obs-plugins/obs-beauty-filter")
 endif()
+

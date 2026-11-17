@@ -92,3 +92,12 @@ dist/data/obs-plugins/obs-beauty-filter/locale/{en-US,zh-CN}.ini
 - `failed to load module` → DLL 架构不对（给了 32 位）或 OBS 版本过旧
 - `无法加载 shaders/beauty.effect` → data 目录没拷到 `OBS\data\obs-plugins\obs-beauty-filter\`
 - 画面全黑 → 当前显卡驱动不支持 effect 编译，日志里会有 shader 编译错误行
+
+## 本机独立构建（已验证）
+运行 `build-windows.bat`，默认使用 `D:\Program Files\obs-studio` 中的 OBS。
+其他安装位置：`build-windows.bat -ObsRoot "C:\Program Files\obs-studio"`。
+脚本自动发现 VS 2022 C++ 工具及其 CMake，下载官方 OBS 30.2.3 头文件，
+从本机 obs.dll 导出表生成 x64 导入库，只编译本插件，无需编译 OBS 或下载 CURL/Qt。
+产物位于 dist，包含 DLL、语言文件及 shader。需要 Git、VS 2022 C++ 工具和 Windows SDK。
+2026-11-17：MSVC 19.44、Windows SDK 10.0.26100.0、CMake 3.31 构建成功；
+链接目标为本机 OBS 33.0.1。此记录仅确认编译及静态依赖检查，尚未确认 OBS 加载和 GPU 渲染。
