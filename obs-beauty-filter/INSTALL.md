@@ -2,7 +2,7 @@
 
 ## 下载和安装
 
-发布后可从 https://github.com/wangsansui963/obs-beauty-cam/releases 下载 obs-beauty-filter-win64.zip；当前本地编译包位于本目录。
+发布后可从 https://github.com/phpinside/obs-beauty-filter/releases 下载 obs-beauty-filter-win64.zip；当前本地编译包位于本目录。
 
 1. 完全退出 OBS Studio（包括后台进程）。
 2. 解压 ZIP，将其中 obs-plugins 和 data 两个文件夹复制到 OBS 安装目录并合并。
@@ -41,4 +41,5 @@ build-windows.bat -ObsRoot "C:\Program Files\obs-studio"
 ```
 
 仓库根目录 .github/workflows/build.yml 支持推送 main 或手动触发，产物在对应 Actions 运行页面的 Artifacts 中下载。
+
 

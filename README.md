@@ -26,7 +26,7 @@
 
 ### 下载
 
-装好的包在 [Releases](https://github.com/wangsansui963/obs-beauty-cam/releases/latest)：
+装好的包在 [Releases](https://github.com/phpinside/obs-beauty-filter/releases/latest)：
 
 - `BeautyCam-Setup-1.0.0.exe`（65 MB）—— 双击安装，免配置
 - `BeautyCam-win64.zip`（58 MB）—— 便携版，解压后跑 `install.bat`
@@ -136,4 +136,5 @@ MIT，见 [LICENSE](LICENSE)。算法与代码均为独立实现。
 ## Windows 64 位原生滤镜安装
 
 下载和完整安装使用步骤请见 [滤镜安装说明](obs-beauty-filter/INSTALL.md)。
+
 

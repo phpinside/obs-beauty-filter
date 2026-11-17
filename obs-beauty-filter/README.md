@@ -101,3 +101,4 @@ dist/data/obs-plugins/obs-beauty-filter/locale/{en-US,zh-CN}.ini
 产物位于 dist，包含 DLL、语言文件及 shader。需要 Git、VS 2022 C++ 工具和 Windows SDK。
 2026-11-17：MSVC 19.44、Windows SDK 10.0.26100.0、CMake 3.31 构建成功；
 链接目标为本机 OBS 33.0.1。此记录仅确认编译及静态依赖检查，尚未确认 OBS 加载和 GPU 渲染。
+
